@@ -13,9 +13,64 @@ from yagmail.validate import validate_email_with_regex
 from yagmail.password import handle_password
 from yagmail.message import prepare_message
 from yagmail.headers import make_addr_alias_user
+import socks
 
+class SMTP(YSMTP):
+    def __init__(
+        self,
+        user=None,
+        password=None,
+        host="smtp.gmail.com",
+        port=None,
+        smtp_starttls=None,
+        smtp_ssl=True,
+        smtp_set_debuglevel=0,
+        smtp_skip_login=False,
+        encoding="utf-8",
+        oauth2_file=None,
+        soft_email_validation=True,
+        proxy = None, # eg: "socks5://127.0.0.1:1080"
+        **kwargs
+    ):
+        super().__init__(
+            user,
+            password,
+            host,
+            port,
+            smtp_starttls,
+            smtp_ssl,
+            smtp_set_debuglevel,
+            smtp_skip_login,
+            encoding,
+            oauth2_file,
+            soft_email_validation,
+            **kwargs
+        )
 
-class SMTP:
+        self.proxy = proxy
+
+        if proxy == None:
+            pass
+        else:
+            self.set_proxy()
+ 
+    def set_proxy(self):
+        proxy_list = self.proxy.replace('/', '').split(":")
+        proxy_type = str(proxy_list[0])
+        proxy_host = str(proxy_list[1])
+        proxy_port = int(proxy_list[2])
+    
+        if proxy_type == "socks4":
+            SOCKS = socks.SOCKS4
+        elif proxy_type == "socks5":
+            SOCKS = socks.SOCKS5
+        elif proxy_type == "http":
+            SOCKS = socks.HTTP
+        
+        socks.setdefaultproxy(SOCKS, proxy_host, proxy_port)
+        socks.wrapmodule(smtplib)  
+
+class YSMTP:
     """ :class:`yagmail.SMTP` is a magic wrapper around
     ``smtplib``'s SMTP connection, and allows messages to be sent."""
 
